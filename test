@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract NFTMarketplace is ERC721, Ownable {
+    constructor() ERC721("MyNFT", "NFT") {}
+
+    struct NFT {
+        uint256 tokenId;
+        uint256 price;
+        address owner;
+    }
+
+    mapping(uint256 => NFT) public nfts;
+
+    function mintNFT(uint256 _tokenId, uint256 _price) external onlyOwner {
+        _mint(msg.sender, _tokenId);
+        nfts[_tokenId] = NFT(_tokenId, _price, msg.sender);
+    }
+
+    function buyNFT(uint256 _tokenId) external payable {
+        require(_exists(_tokenId), "NFT does not exist");
+        NFT storage nft = nfts[_tokenId];
+        require(msg.value >= nft.price, "Insufficient funds");
+        address previousOwner = nft.owner;
+        address newOwner = msg.sender;
+        nft.owner = newOwner;
+        nft.price = 0;
+        _transfer(previousOwner, newOwner, _tokenId);
+        payable(previousOwner).transfer(msg.value);
+    }
+}
